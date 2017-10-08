@@ -2,4 +2,5 @@ module Main where
 
 main :: IO ()
 main = do
-  putStrLn "Rogue code here"
+  input <- getLine
+  putStrLn $ "Rogue code here - " ++  input
