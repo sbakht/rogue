@@ -2,13 +2,11 @@ module Main where
 
 main :: IO ()
 main = do
-  loop
+  loop []
 
-loop :: IO ()
-loop = do
+loop :: [String] -> IO ()
+loop start = do
   input <- getLine
-  putStrLn $ "Rogue code here - " ++ start
-  loop
-
-start :: String
-start = "0"
+  let accum = start ++ [input]
+  putStrLn $ "Rogue code here - " ++ show accum
+  loop accum
