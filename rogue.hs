@@ -1,7 +1,7 @@
 module Main where
 
 
-data Cord = Cord (Int, Int) deriving (Show)
+data Cord = Cord (Int, Int) deriving (Eq, Show)
 
 data Input =
     IUp
@@ -17,22 +17,25 @@ isValid = undefined
 
 getInput :: IO (Maybe Input)
 getInput = do 
-    input <- getLine
+    input <- getChar
     return $ toInput input
 
 runInput :: [Input] -> Maybe Input -> [Input]
 runInput inputs (Just x) = x : inputs
 runInput inputs Nothing = inputs
 
-toInput :: String -> Maybe Input
-toInput "a" = Just ILeft
-toInput "w" = Just IUp
-toInput "d" = Just IRight
-toInput "s" = Just IDown
+toInput :: Char -> Maybe Input
+toInput 'a' = Just ILeft
+toInput 'w' = Just IUp
+toInput 'd' = Just IRight
+toInput 's' = Just IDown
 toInput _ = Nothing
 
 movePlayer :: Player -> Maybe Input -> Player
-movePlayer (Player cord) (Just input) = Player (moveObject cord input)
+movePlayer (Player cord) (Just input) 
+    | (isWallLoc newPos) = Player cord
+    | otherwise          = Player newPos 
+    where newPos = moveObject cord input
 movePlayer player Nothing = player
 
 moveObject :: Cord -> Input -> Cord
@@ -44,15 +47,25 @@ moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
 playerStart :: Player
 playerStart = Player (Cord (0,0))
 
+isPlayerLoc :: Cord -> Cord -> Bool
+isPlayerLoc = (==)
+
+walls :: [Cord]
+walls = fmap Cord [(1,1), (2,1)]
+
+isWallLoc :: Cord -> Bool
+isWallLoc cord = elem cord walls
+
 showWorld :: Player -> IO ()
 showWorld player = putStrLn $ buildWorld (cord player) 3 3 
 
 buildWorld :: Cord -> Int -> Int -> String
-buildWorld (Cord (c,c')) n n' = go 0 0 
+buildWorld cord n n' = go 0 0 
     where go x y 
             | (y == n') = [] 
             | (x == n)  = ['\n'] ++ go 0 (y + 1)
-            | (x == c && y == c') = ['@'] ++ go (x + 1) y
+            | isPlayerLoc cord (Cord (x,y)) = ['@'] ++ go (x + 1) y
+            | isWallLoc (Cord (x,y)) = ['#'] ++ go (x + 1) y
             | otherwise = ['-'] ++ go (x + 1) y
 
 
