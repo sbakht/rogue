@@ -10,10 +10,17 @@ data Input =
   | IRight 
     deriving (Show)
 
-data Player = Player { cord :: Cord } deriving (Show)
+data Player = Player { wCord :: Cord } deriving (Show)
 
-isValid :: String -> Bool
-isValid = undefined
+data World = World { wPlayer :: Player
+                    ,wWalls :: [Cord] }
+
+isValidMove :: World -> Maybe Input -> Bool
+isValidMove world (Just input)
+    | isWallLoc world newPos = False
+    | otherwise = True
+    where newPos = moveObject (playerCord world) input
+isValidMove _ Nothing = False
 
 getInput :: IO (Maybe Input)
 getInput = do 
@@ -31,12 +38,9 @@ toInput 'd' = Just IRight
 toInput 's' = Just IDown
 toInput _ = Nothing
 
-movePlayer :: Player -> Maybe Input -> Player
-movePlayer (Player cord) (Just input) 
-    | (isWallLoc newPos) = Player cord
-    | otherwise          = Player newPos 
-    where newPos = moveObject cord input
-movePlayer player Nothing = player
+movePlayer :: World -> Maybe Input -> Player
+movePlayer world (Just input) = Player $ moveObject (playerCord world) input
+movePlayer world Nothing = wPlayer world
 
 moveObject :: Cord -> Input -> Cord
 moveObject (Cord (x,y)) IUp = Cord (x, y - 1)
@@ -44,41 +48,42 @@ moveObject (Cord (x,y)) IDown = Cord (x, y + 1)
 moveObject (Cord (x,y)) IRight = Cord (x + 1, y)
 moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
 
-playerStart :: Player
-playerStart = Player (Cord (0,0))
+playerCord :: World -> Cord
+playerCord = wCord . wPlayer
 
-isPlayerLoc :: Cord -> Cord -> Bool
-isPlayerLoc = (==)
+isPlayerLoc :: World -> Cord -> Bool
+isPlayerLoc world = (==) (playerCord world)
 
 walls :: [Cord]
 walls = fmap Cord [(1,1), (2,1)]
 
-isWallLoc :: Cord -> Bool
-isWallLoc cord = elem cord walls
+isWallLoc :: World -> Cord -> Bool
+isWallLoc world cord = elem cord (wWalls world)
 
-showWorld :: Player -> IO ()
-showWorld player = putStrLn $ buildWorld (cord player) 3 3 
+showWorld :: World -> IO ()
+showWorld world = putStrLn $ buildWorld world 3 3 
 
-buildWorld :: Cord -> Int -> Int -> String
-buildWorld cord n n' = go 0 0 
+buildWorld :: World -> Int -> Int -> String
+buildWorld world n n' = go 0 0 
     where go x y 
             | (y == n') = [] 
             | (x == n)  = ['\n'] ++ go 0 (y + 1)
-            | isPlayerLoc cord (Cord (x,y)) = ['@'] ++ go (x + 1) y
-            | isWallLoc (Cord (x,y)) = ['#'] ++ go (x + 1) y
+            | isPlayerLoc world (Cord (x,y)) = ['@'] ++ go (x + 1) y
+            | isWallLoc world (Cord (x,y)) = ['#'] ++ go (x + 1) y
             | otherwise = ['-'] ++ go (x + 1) y
 
 
 main :: IO ()
 main = do
-  loop [] (Player (Cord (0,0)))
+  loop [] (World (Player (Cord (0,0))) walls)
 
-loop :: [Input] -> Player -> IO ()
-loop prevInputs player = do
+loop :: [Input] -> World -> IO ()
+loop prevInputs world = do
+  showWorld world
   input <- getInput
   let inputs = runInput prevInputs input
-  let player' = movePlayer player input
+  let player' = if isValidMove world input then movePlayer world input else wPlayer world
+  let world' = World player' walls 
   putStrLn $ "Rogue code here - " ++ show inputs
-  showWorld player'
   print player'
-  loop inputs player'
+  loop inputs world'
