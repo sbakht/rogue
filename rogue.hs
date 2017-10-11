@@ -83,6 +83,7 @@ storageCords = map (Cord . snd) . filter ((== '.') . fst)
 level :: [String]
 level = ["#####"
        ,"#.o@#"
+       ,"#---#"
        ,"#####"]
 
 instance Show World where
@@ -94,7 +95,7 @@ instance Show World where
             | isWall world (Cord (x,y)) = ['#'] ++ go (x + 1) y
             | isCrate world (Cord (x,y)) = ['o'] ++ go (x + 1) y
             | isStorage world (Cord (x,y)) = ['.'] ++ go (x + 1) y
-            | otherwise = ['-'] ++ go (x + 1) y
+            | otherwise = [' '] ++ go (x + 1) y
           height = wHeight world
           width = wWidth world
 
