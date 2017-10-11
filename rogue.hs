@@ -76,20 +76,28 @@ moveObject (Cord (x,y)) IDown = Cord (x, y + 1)
 moveObject (Cord (x,y)) IRight = Cord (x + 1, y)
 moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
 
-playerCord :: [(Char, (Int, Int))] -> Player
+playerCord :: [(Char, Cord)] -> Player
 playerCord = head . cordsOf '@'
 
-wallCords :: [(Char, (Int, Int))] -> [Wall]
+wallCords :: [(Char, Cord)] -> [Wall]
 wallCords = cordsOf '#'
 
-crateCords :: [(Char, (Int, Int))] -> [Crate]
+crateCords :: [(Char, Cord)] -> [Crate]
 crateCords = cordsOf 'o'
 
-storageCords :: [(Char, (Int, Int))] -> [Storage]
+storageCords :: [(Char, Cord)] -> [Storage]
 storageCords = cordsOf '.'
 
-cordsOf :: Char -> [(Char, (Int, Int))] -> [Cord]
-cordsOf c = map (Cord . snd) . filter ((== c) . fst)
+cordsOf :: Char -> [(Char, Cord)] -> [Cord]
+cordsOf c = map snd . filter ((== c) . fst)
+
+allCords :: Int -> Int -> [[Cord]]
+allCords width height = map (\y -> map (\x -> Cord (x,y)) [0..(width - 1)]) [0..(height - 1)]  
+
+levelToCords :: [String] -> [(Char, Cord)]
+levelToCords level = concat $ zipWith zip level (allCords width height)
+  where width = maximum . map length $ level
+        height = length level
 
 ---------------------------------------------------------------------------
 
@@ -99,12 +107,10 @@ level = ["#####"
        ,"#---#"
        ,"#####"]
 
-allCords :: World -> [[Cord]]
-allCords world = map (\y -> map (\x -> Cord (x,y)) [0..(wWidth world - 1)]) [0..(wHeight world - 1)]  
-
 instance Show World where
-  show world = unlines $ (map . map) go (allCords world) 
-    where go cord 
+  show world = unlines . (map . map) toChar $ cords
+    where cords = allCords (wWidth world) (wHeight world)
+          toChar cord 
             | isPlayer world cord = '@'
             | isWall world cord = '#'
             | isCrate world cord = 'o'
@@ -113,20 +119,15 @@ instance Show World where
 
 ---------------------------------------------------------------------------
 
-levelToCords :: [String] -> [(Char, (Int, Int))]
-levelToCords level = concat $ zipWith (\x y -> zipWith (\x z -> (x,(z,y)) ) x [0..]) level [0..]
-
-triggerMove :: World -> Maybe Input -> World
-triggerMove world (Just input) = world {wPlayer = newPos, wCrates = crates'}
+updateWorld :: World -> Maybe Input -> World
+updateWorld world (Just input) = world {wPlayer = newPos, wCrates = crates'}
     where newPos = moveObject (wPlayer world) input
           crates = filter ((/=) newPos) (wCrates world)
           isNextCrate = length (filter ((==) newPos) (wCrates world)) == 1
           crates' = if isNextCrate
             then (moveObject newPos input) : crates
             else crates
-
-          newCratePos = moveObject (newPos) input
-triggerMove world Nothing = world
+updateWorld world Nothing = world
 
 loadLevel :: [String] -> World
 loadLevel xs = (World 
@@ -152,7 +153,7 @@ loop prevInputs world = do
   input <- getInput
   let inputs = runInput prevInputs input
   let world' = if isValidMove world input 
-                then triggerMove world input 
+                then updateWorld world input 
                 else world
   print world'
   if hasWon world'
