@@ -1,7 +1,8 @@
 module Main where
 
+import Data.List (sort)
 
-data Cord = Cord (Int, Int) deriving (Eq, Show)
+data Cord = Cord (Int, Int) deriving (Ord, Eq, Show)
 
 data Input =
     IUp
@@ -132,18 +133,23 @@ getInput = do
     input <- getChar
     return (toInput input)
 
+hasWon :: World -> Bool
+hasWon world = sort (wStorage world) == sort (wCrates world)
+
 main :: IO ()
 main = do
-  loop [] (loadLevel level)
+  let world = loadLevel level
+  print world
+  loop [] world
 
 loop :: [Input] -> World -> IO ()
 loop prevInputs world = do
-  print world
   input <- getInput
   let inputs = runInput prevInputs input
-  let player' = if isValidMove world input 
-                then movePlayer world input 
-                else wPlayer world
-  let world' = world {wPlayer = player'}
-  print player'
-  loop inputs world'
+  let world' = if isValidMove world input 
+                then triggerMove world input 
+                else world
+  print world'
+  if hasWon world'
+    then putStrLn "You Won!" 
+    else loop inputs world'
