@@ -98,8 +98,8 @@ instance Show World where
 
 ---------------------------------------------------------------------------
 
-levelCords :: [String] -> [(Char, (Int, Int))]
-levelCords level = concat $ zipWith (\x y -> zipWith (\x z -> (x,(z,y)) ) x [0..]) level [0..]
+levelToCords :: [String] -> [(Char, (Int, Int))]
+levelToCords level = concat $ zipWith (\x y -> zipWith (\x z -> (x,(z,y)) ) x [0..]) level [0..]
 
 triggerMove :: World -> Maybe Input -> World
 triggerMove world (Just input) = world {wPlayer = newPos, wCrates = crates'}
@@ -114,19 +114,12 @@ triggerMove world (Just input) = world {wPlayer = newPos, wCrates = crates'}
 triggerMove world Nothing = world
 
 loadLevel :: [String] -> World
-loadLevel xs = World {wPlayer = player
-                     ,wWalls = walls
-                     ,wCrates = crates
-                     ,wStorage = storage
-                     ,wWidth = width 
-                     ,wHeight = height}
-  where cords = levelCords xs
-        player = playerCord cords
-        walls = wallCords cords
-        crates = crateCords cords
-        storage = storageCords cords
-        width = maximum $ map length xs
-        height = length xs 
+loadLevel xs = (World 
+                <$> playerCord <*> wallCords <*> crateCords <*> storageCords $ cords) 
+                <$> width <*> height $ xs
+  where cords = levelToCords xs
+        width = maximum . map length
+        height = length 
 
 getInput :: IO (Maybe Input)
 getInput = do 
