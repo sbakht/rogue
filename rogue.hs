@@ -56,10 +56,6 @@ runInput inputs Nothing = inputs
 
 ---------------------------------------------------------------------------
 
-movePlayer :: World -> Maybe Input -> Cord
-movePlayer world (Just input) = moveObject (wPlayer world) input
-movePlayer world Nothing = wPlayer world
-
 moveObject :: Cord -> Input -> Cord
 moveObject (Cord (x,y)) IUp = Cord (x, y - 1)
 moveObject (Cord (x,y)) IDown = Cord (x, y + 1)
@@ -103,6 +99,18 @@ instance Show World where
 
 levelCords :: [String] -> [(Char, (Int, Int))]
 levelCords level = concat $ zipWith (\x y -> zipWith (\x z -> (x,(z,y)) ) x [0..]) level [0..]
+
+triggerMove :: World -> Maybe Input -> World
+triggerMove world (Just input) = world {wPlayer = newPos, wCrates = crates'}
+    where newPos = moveObject (wPlayer world) input
+          crates = filter ((/=) newPos) (wCrates world)
+          isNextCrate = length (filter ((==) newPos) (wCrates world)) == 1
+          crates' = if isNextCrate
+            then (moveObject newPos input) : crates
+            else crates
+
+          newCratePos = moveObject (newPos) input
+triggerMove world Nothing = world
 
 loadLevel :: [String] -> World
 loadLevel xs = World {wPlayer = player
