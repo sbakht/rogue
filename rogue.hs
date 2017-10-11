@@ -36,13 +36,16 @@ isStorage world cord = elem cord (wStorage world)
 hasWon :: World -> Bool
 hasWon world = sort (wStorage world) == sort (wCrates world)
 
+isCratePushable :: World -> Cord -> Input -> Bool
+isCratePushable world cord input = not (isWall world newPos || isCrate world newPos)
+    where newPos = moveObject cord input
+
 isValidMove :: World -> Maybe Input -> Bool
 isValidMove world (Just input)
     | isWall world newPos = False
-    | isCrate world newPos = not (isWall world newCratePos || isCrate world newCratePos)
+    | isCrate world newPos = isCratePushable world newPos input
     | otherwise = True
     where newPos = moveObject (wPlayer world) input
-          newCratePos = moveObject (newPos) input
 isValidMove _ Nothing = False
 
 ---------------------------------------------------------------------------
