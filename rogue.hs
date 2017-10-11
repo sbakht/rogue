@@ -33,6 +33,9 @@ isCrate world cord = elem cord (wCrates world)
 isStorage :: World -> Cord -> Bool
 isStorage world cord = elem cord (wStorage world)
 
+hasWon :: World -> Bool
+hasWon world = sort (wStorage world) == sort (wCrates world)
+
 isValidMove :: World -> Maybe Input -> Bool
 isValidMove world (Just input)
     | isWall world newPos = False
@@ -64,16 +67,19 @@ moveObject (Cord (x,y)) IRight = Cord (x + 1, y)
 moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
 
 playerCord :: [(Char, (Int, Int))] -> Cord
-playerCord = Cord . snd . head . filter ((== '@') . fst)
+playerCord = head . cordsOf '@'
 
 wallCords :: [(Char, (Int, Int))] -> [Cord]
-wallCords = map (Cord . snd) . filter ((== '#') . fst)
+wallCords = cordsOf '#'
 
 crateCords :: [(Char, (Int, Int))] -> [Cord]
-crateCords = map (Cord . snd) . filter ((== 'o') . fst)
+crateCords = cordsOf 'o'
 
 storageCords :: [(Char, (Int, Int))] -> [Cord]
-storageCords = map (Cord . snd) . filter ((== '.') . fst)
+storageCords = cordsOf '.'
+
+cordsOf :: Char -> [(Char, (Int, Int))] -> [Cord]
+cordsOf c = map (Cord . snd) . filter ((== c) . fst)
 
 ---------------------------------------------------------------------------
 
@@ -125,9 +131,6 @@ getInput :: IO (Maybe Input)
 getInput = do 
     input <- getChar
     return (toInput input)
-
-hasWon :: World -> Bool
-hasWon world = sort (wStorage world) == sort (wCrates world)
 
 main :: IO ()
 main = do
