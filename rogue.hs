@@ -41,18 +41,6 @@ isValidMove _ Nothing = False
 
 ---------------------------------------------------------------------------
 
-moveObject :: Cord -> Input -> Cord
-moveObject (Cord (x,y)) IUp = Cord (x, y - 1)
-moveObject (Cord (x,y)) IDown = Cord (x, y + 1)
-moveObject (Cord (x,y)) IRight = Cord (x + 1, y)
-moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
-
----------------------------------------------------------------------------
-
-runInput :: [Input] -> Maybe Input -> [Input]
-runInput inputs (Just x) = x : inputs
-runInput inputs Nothing = inputs
-
 toInput :: Char -> Maybe Input
 toInput 'a' = Just ILeft
 toInput 'w' = Just IUp
@@ -60,11 +48,33 @@ toInput 'd' = Just IRight
 toInput 's' = Just IDown
 toInput _ = Nothing
 
+runInput :: [Input] -> Maybe Input -> [Input]
+runInput inputs (Just x) = x : inputs
+runInput inputs Nothing = inputs
+
 ---------------------------------------------------------------------------
 
 movePlayer :: World -> Maybe Input -> Cord
 movePlayer world (Just input) = moveObject (wPlayer world) input
 movePlayer world Nothing = wPlayer world
+
+moveObject :: Cord -> Input -> Cord
+moveObject (Cord (x,y)) IUp = Cord (x, y - 1)
+moveObject (Cord (x,y)) IDown = Cord (x, y + 1)
+moveObject (Cord (x,y)) IRight = Cord (x + 1, y)
+moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
+
+playerCord :: [(Char, (Int, Int))] -> Cord
+playerCord = Cord . snd . head . filter ((== '@') . fst)
+
+wallCords :: [(Char, (Int, Int))] -> [Cord]
+wallCords = map (Cord . snd) . filter ((== '#') . fst)
+
+crateCords :: [(Char, (Int, Int))] -> [Cord]
+crateCords = map (Cord . snd) . filter ((== 'o') . fst)
+
+storageCords :: [(Char, (Int, Int))] -> [Cord]
+storageCords = map (Cord . snd) . filter ((== '.') . fst)
 
 ---------------------------------------------------------------------------
 
@@ -114,18 +124,6 @@ loadLevel xs = World {wPlayer = player
         storage = storageCords cords
         width = maximum $ map length xs
         height = length xs 
-
-playerCord :: [(Char, (Int, Int))] -> Cord
-playerCord = Cord . snd . head . filter ((== '@') . fst)
-
-wallCords :: [(Char, (Int, Int))] -> [Cord]
-wallCords = map (Cord . snd) . filter ((== '#') . fst)
-
-crateCords :: [(Char, (Int, Int))] -> [Cord]
-crateCords = map (Cord . snd) . filter ((== 'o') . fst)
-
-storageCords :: [(Char, (Int, Int))] -> [Cord]
-storageCords = map (Cord . snd) . filter ((== '.') . fst)
 
 getInput :: IO (Maybe Input)
 getInput = do 
