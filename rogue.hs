@@ -99,18 +99,17 @@ level = ["#####"
        ,"#---#"
        ,"#####"]
 
+allCords :: World -> [[Cord]]
+allCords world = map (\y -> map (\x -> Cord (x,y)) [0..(wWidth world - 1)]) [0..(wHeight world - 1)]  
+
 instance Show World where
-  show world = go 0 0 
-    where go x y 
-            | (y == height) = [] 
-            | (x == width)  = ['\n'] ++ go 0 (y + 1)
-            | isPlayer world (Cord (x,y)) = ['@'] ++ go (x + 1) y
-            | isWall world (Cord (x,y)) = ['#'] ++ go (x + 1) y
-            | isCrate world (Cord (x,y)) = ['o'] ++ go (x + 1) y
-            | isStorage world (Cord (x,y)) = ['.'] ++ go (x + 1) y
-            | otherwise = [' '] ++ go (x + 1) y
-          height = wHeight world
-          width = wWidth world
+  show world = unlines $ (map . map) go (allCords world) 
+    where go cord 
+            | isPlayer world cord = '@'
+            | isWall world cord = '#'
+            | isCrate world cord = 'o'
+            | isStorage world cord = '.'
+            | otherwise = ' '
 
 ---------------------------------------------------------------------------
 
