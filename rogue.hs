@@ -78,15 +78,6 @@ storageCords = map (Cord . snd) . filter ((== '.') . fst)
 
 ---------------------------------------------------------------------------
 
-buildWorld :: World -> Int -> Int -> String
-buildWorld world n n' = go 0 0 
-    where go x y 
-            | (y == n') = [] 
-            | (x == n)  = ['\n'] ++ go 0 (y + 1)
-            | isPlayer world (Cord (x,y)) = ['@'] ++ go (x + 1) y
-            | isWall world (Cord (x,y)) = ['#'] ++ go (x + 1) y
-            | otherwise = ['-'] ++ go (x + 1) y
-
 level :: [String]
 level = ["#####"
        ,"#.o@#"
