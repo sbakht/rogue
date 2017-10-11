@@ -2,6 +2,11 @@ module Main where
 
 import Data.List (sort)
 
+type Player = Cord
+type Wall = Cord
+type Crate = Cord
+type Storage = Cord
+
 data Cord = Cord (Int, Int) deriving (Ord, Eq, Show)
 
 data Input =
@@ -36,16 +41,18 @@ isStorage world cord = elem cord (wStorage world)
 hasWon :: World -> Bool
 hasWon world = sort (wStorage world) == sort (wCrates world)
 
-isCratePushable :: World -> Cord -> Input -> Bool
+isCratePushable :: World -> Crate -> Input -> Bool
 isCratePushable world cord input = not (isWall world newPos || isCrate world newPos)
-    where newPos = moveObject cord input
+    where newPos :: Crate
+          newPos = moveObject cord input
 
 isValidMove :: World -> Maybe Input -> Bool
 isValidMove world (Just input)
     | isWall world newPos = False
     | isCrate world newPos = isCratePushable world newPos input
     | otherwise = True
-    where newPos = moveObject (wPlayer world) input
+    where newPos :: Player
+          newPos = moveObject (wPlayer world) input
 isValidMove _ Nothing = False
 
 ---------------------------------------------------------------------------
@@ -69,16 +76,16 @@ moveObject (Cord (x,y)) IDown = Cord (x, y + 1)
 moveObject (Cord (x,y)) IRight = Cord (x + 1, y)
 moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
 
-playerCord :: [(Char, (Int, Int))] -> Cord
+playerCord :: [(Char, (Int, Int))] -> Player
 playerCord = head . cordsOf '@'
 
-wallCords :: [(Char, (Int, Int))] -> [Cord]
+wallCords :: [(Char, (Int, Int))] -> [Wall]
 wallCords = cordsOf '#'
 
-crateCords :: [(Char, (Int, Int))] -> [Cord]
+crateCords :: [(Char, (Int, Int))] -> [Crate]
 crateCords = cordsOf 'o'
 
-storageCords :: [(Char, (Int, Int))] -> [Cord]
+storageCords :: [(Char, (Int, Int))] -> [Storage]
 storageCords = cordsOf '.'
 
 cordsOf :: Char -> [(Char, (Int, Int))] -> [Cord]
