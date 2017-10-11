@@ -10,22 +10,44 @@ data Input =
   | IRight 
     deriving (Show)
 
-data Player = Player { wCord :: Cord } deriving (Show)
+data World = World { wPlayer :: Cord
+                    ,wWalls :: [Cord]
+                    ,wCrates :: [Cord]
+                    ,wStorage :: [Cord]
+                    ,wWidth :: Int
+                    ,wHeight :: Int }
 
-data World = World { wPlayer :: Player
-                    ,wWalls :: [Cord] }
+
+---------------------------------------------------------------------------
+
+isPlayer :: World -> Cord -> Bool
+isPlayer world = (==) (wPlayer world)
+
+isWall :: World -> Cord -> Bool
+isWall world cord = elem cord (wWalls world)
+
+isCrate :: World -> Cord -> Bool
+isCrate world cord = elem cord (wCrates world)
+
+isStorage :: World -> Cord -> Bool
+isStorage world cord = elem cord (wStorage world)
 
 isValidMove :: World -> Maybe Input -> Bool
 isValidMove world (Just input)
-    | isWallLoc world newPos = False
+    | isWall world newPos = False
     | otherwise = True
-    where newPos = moveObject (playerCord world) input
+    where newPos = moveObject (wPlayer world) input
 isValidMove _ Nothing = False
 
-getInput :: IO (Maybe Input)
-getInput = do 
-    input <- getChar
-    return $ toInput input
+---------------------------------------------------------------------------
+
+moveObject :: Cord -> Input -> Cord
+moveObject (Cord (x,y)) IUp = Cord (x, y - 1)
+moveObject (Cord (x,y)) IDown = Cord (x, y + 1)
+moveObject (Cord (x,y)) IRight = Cord (x + 1, y)
+moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
+
+---------------------------------------------------------------------------
 
 runInput :: [Input] -> Maybe Input -> [Input]
 runInput inputs (Just x) = x : inputs
@@ -38,52 +60,90 @@ toInput 'd' = Just IRight
 toInput 's' = Just IDown
 toInput _ = Nothing
 
-movePlayer :: World -> Maybe Input -> Player
-movePlayer world (Just input) = Player $ moveObject (playerCord world) input
+---------------------------------------------------------------------------
+
+movePlayer :: World -> Maybe Input -> Cord
+movePlayer world (Just input) = moveObject (wPlayer world) input
 movePlayer world Nothing = wPlayer world
 
-moveObject :: Cord -> Input -> Cord
-moveObject (Cord (x,y)) IUp = Cord (x, y - 1)
-moveObject (Cord (x,y)) IDown = Cord (x, y + 1)
-moveObject (Cord (x,y)) IRight = Cord (x + 1, y)
-moveObject (Cord (x,y)) ILeft = Cord (x - 1, y)
-
-playerCord :: World -> Cord
-playerCord = wCord . wPlayer
-
-isPlayerLoc :: World -> Cord -> Bool
-isPlayerLoc world = (==) (playerCord world)
-
-walls :: [Cord]
-walls = fmap Cord [(1,1), (2,1)]
-
-isWallLoc :: World -> Cord -> Bool
-isWallLoc world cord = elem cord (wWalls world)
-
-showWorld :: World -> IO ()
-showWorld world = putStrLn $ buildWorld world 3 3 
+---------------------------------------------------------------------------
 
 buildWorld :: World -> Int -> Int -> String
 buildWorld world n n' = go 0 0 
     where go x y 
             | (y == n') = [] 
             | (x == n)  = ['\n'] ++ go 0 (y + 1)
-            | isPlayerLoc world (Cord (x,y)) = ['@'] ++ go (x + 1) y
-            | isWallLoc world (Cord (x,y)) = ['#'] ++ go (x + 1) y
+            | isPlayer world (Cord (x,y)) = ['@'] ++ go (x + 1) y
+            | isWall world (Cord (x,y)) = ['#'] ++ go (x + 1) y
             | otherwise = ['-'] ++ go (x + 1) y
 
+level :: [String]
+level = ["#####"
+       ,"#.o@#"
+       ,"#####"]
+
+instance Show World where
+  show world = go 0 0 
+    where go x y 
+            | (y == height) = [] 
+            | (x == width)  = ['\n'] ++ go 0 (y + 1)
+            | isPlayer world (Cord (x,y)) = ['@'] ++ go (x + 1) y
+            | isWall world (Cord (x,y)) = ['#'] ++ go (x + 1) y
+            | isCrate world (Cord (x,y)) = ['o'] ++ go (x + 1) y
+            | isStorage world (Cord (x,y)) = ['.'] ++ go (x + 1) y
+            | otherwise = ['-'] ++ go (x + 1) y
+          height = wHeight world
+          width = wWidth world
+
+---------------------------------------------------------------------------
+
+levelCords :: [String] -> [(Char, (Int, Int))]
+levelCords level = concat $ zipWith (\x y -> zipWith (\x z -> (x,(z,y)) ) x [0..]) level [0..]
+
+loadLevel :: [String] -> World
+loadLevel xs = World {wPlayer = player
+                     ,wWalls = walls
+                     ,wCrates = crates
+                     ,wStorage = storage
+                     ,wWidth = width 
+                     ,wHeight = height}
+  where cords = levelCords xs
+        player = playerCord cords
+        walls = wallCords cords
+        crates = crateCords cords
+        storage = storageCords cords
+        width = maximum $ map length xs
+        height = length xs 
+
+playerCord :: [(Char, (Int, Int))] -> Cord
+playerCord = Cord . snd . head . filter ((== '@') . fst)
+
+wallCords :: [(Char, (Int, Int))] -> [Cord]
+wallCords = map (Cord . snd) . filter ((== '#') . fst)
+
+crateCords :: [(Char, (Int, Int))] -> [Cord]
+crateCords = map (Cord . snd) . filter ((== 'o') . fst)
+
+storageCords :: [(Char, (Int, Int))] -> [Cord]
+storageCords = map (Cord . snd) . filter ((== '.') . fst)
+
+getInput :: IO (Maybe Input)
+getInput = do 
+    input <- getChar
+    return (toInput input)
 
 main :: IO ()
 main = do
-  loop [] (World (Player (Cord (0,0))) walls)
+  loop [] (loadLevel level)
 
 loop :: [Input] -> World -> IO ()
 loop prevInputs world = do
-  showWorld world
+  print world
   input <- getInput
   let inputs = runInput prevInputs input
-  let player' = if isValidMove world input then movePlayer world input else wPlayer world
-  let world' = World player' walls 
-  putStrLn $ "Rogue code here - " ++ show inputs
+  let player' = if isValidMove world input 
+                then movePlayer world input 
+                else wPlayer world
+  let world' = world {wPlayer = player'}
   print player'
   loop inputs world'
