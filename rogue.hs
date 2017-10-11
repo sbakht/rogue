@@ -35,8 +35,10 @@ isStorage world cord = elem cord (wStorage world)
 isValidMove :: World -> Maybe Input -> Bool
 isValidMove world (Just input)
     | isWall world newPos = False
+    | isCrate world newPos = not (isWall world newCratePos || isCrate world newCratePos)
     | otherwise = True
     where newPos = moveObject (wPlayer world) input
+          newCratePos = moveObject (newPos) input
 isValidMove _ Nothing = False
 
 ---------------------------------------------------------------------------
